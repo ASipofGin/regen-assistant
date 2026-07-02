@@ -1,0 +1,14 @@
+{
+  "Author": "ASipofGin",
+  "Name": "Regen Assistant",
+  "Punchline": "Shows how much HP active regens will still restore — and when — beside each party member.",
+  "Description": "Tracks heal-over-time effects (Regen, Medica II/III, Aspected Benefic/Helios, Physis, Aurora, and more) on you and your party.\n\nDisplays the estimated remaining healing and the time until the effect completes next to each member's HP on the party list, with an optional square gauge that drains as the regen runs out.\n\nCommands:\n/regenassist — toggle the party regen monitor window\n/regenassist config — open settings\n/regenassist overlay — toggle the party list overlay",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "healer",
+    "regen",
+    "hot",
+    "party",
+    "overlay"
+  ]
+}
