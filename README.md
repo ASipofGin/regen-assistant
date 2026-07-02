@@ -1,78 +1,87 @@
-> ⚠️ **Don't click Fork!**
-> 
-> This is a GitHub Template repo. If you want to use this for a plugin, [use this template][new-repo] to make a new repo!
->
-> ![image](https://github.com/goatcorp/SamplePlugin/assets/16760685/d9732094-e1ed-4769-a70b-58ed2b92580c)
+# Regen Assistant
 
-# SamplePlugin
+A [Dalamud](https://dalamud.dev) plugin for FFXIV that telegraphs what your
+heal-over-time effects are still going to do: next to each player's HP on the
+party list it shows the **estimated HP the active regens will still restore**
+and **how long until they finish**, plus an optional **square gauge** that
+drains as the longest regen runs out.
 
-[![Use This Template badge](https://img.shields.io/badge/Use%20This%20Template-0?logo=github&labelColor=grey)][new-repo]
+Built from the [goatcorp SamplePlugin](https://github.com/goatcorp/SamplePlugin)
+template (Dalamud.NET.Sdk 15 / API level 15).
 
+## Features
 
-Simple example plugin for Dalamud.
+* **Party list overlay** — anchored to each member's HP gauge on the native
+  party list (`_PartyList`), in HUD order, including the solo frame:
+  * `+12.3k 14s` — estimated remaining healing and time to completion
+  * a square gauge that fills proportionally to the remaining regen time
+* **Party Regen Monitor** — a standalone window listing every member's HP,
+  total estimated regen, and a countdown bar; hover the heal amount for a
+  per-status breakdown.
+* **Tracked effects** — Regen, Medica II/III, Asylum, Aspected Benefic/Helios,
+  Helios Conjunction, Wheel of Fortune, Whispering Dawn, Angel's Whisper,
+  Fey Union, Sacred Soil, Seraphism, Kerakeia, Physis I/II, Aurora.
+  Status ids are resolved from the game's Status sheet **by name at load
+  time**, so they survive game patches. You can disable any built-in or add
+  your own `status id → potency/tick` entries in the settings.
 
-This is not designed to be the simplest possible example, but it is also not designed to cover everything you might want to do. For more detailed questions, come ask in [the Discord](https://discord.gg/holdshift).
+## How the estimate works
 
-## Main Points
+HoTs tick once per actor tick (every 3 s). The plugin computes
+`remaining ticks × potency per tick × HP-per-potency`. Actual healing scales
+with the *caster's* stats, which are not visible for other players, so
+**HP-per-potency is a calibration slider** (default 35): divide an observed
+tick amount by the tick's potency and enter the result. Optionally the
+estimate can be capped at the target's missing HP.
 
-* Simple functional plugin
-  * Slash command
-  * Main UI
-  * Settings UI
-  * Image loading
-  * Plugin json
-* Simple, slightly-improved plugin configuration handling
-* Project organization
-  * Copies all necessary plugin files to the output directory
-    * Does not copy dependencies that are provided by dalamud
-    * Output directory can be zipped directly and have exactly what is required
-  * Hides data files from visual studio to reduce clutter
-    * Also allows having data files in different paths than VS would usually allow if done in the IDE directly
+## Commands
 
+| Command | Effect |
+| --- | --- |
+| `/regenassist` | Toggle the Party Regen Monitor window |
+| `/regenassist config` | Open settings |
+| `/regenassist overlay` | Toggle the party list overlay |
 
-The intention is less that any of this is used directly in other projects, and more to show how similar things can be done.
-
-## How To Use
-
-### Getting Started
-
-To begin, [clone this template repository][new-repo] to your own GitHub account. This will automatically bring in everything you need to get a jumpstart on development. You do not need to fork this repository unless you intend to contribute modifications to it.
-
-Be sure to also check out the [Dalamud Developer Docs][dalamud-docs] for helpful information about building your own plugin. The Developer Docs includes helpful information about all sorts of things, including [how to submit][submit] your newly-created plugin to the official repository. Assuming you use this template repository, the provided project build configuration and license are already chosen to make everything a breeze.
-
-[new-repo]: https://github.com/new?template_name=SamplePlugin&template_owner=goatcorp
-[dalamud-docs]: https://dalamud.dev
-[submit]: https://dalamud.dev/plugin-publishing/submission
+## Building
 
 ### Prerequisites
 
-SamplePlugin assumes all the following prerequisites are met:
+* XIVLauncher, FINAL FANTASY XIV, and Dalamud installed and run at least once
+  (or a Dalamud dev distribution extracted somewhere and pointed to with the
+  `DALAMUD_HOME` environment variable).
+* .NET 10 SDK.
 
-* XIVLauncher, FINAL FANTASY XIV, and Dalamud have all been installed and the game has been run with Dalamud at least once.
-* XIVLauncher is installed to its default directories and configurations.
-  * If a custom path is required for Dalamud's dev directory, it must be set with the `DALAMUD_HOME` environment variable.
-* A .NET Core 8 SDK has been installed and configured, or is otherwise available. (In most cases, the IDE will take care of this.)
+### Steps
 
-### Building
+1. Open `RegenAssistant.sln` in Visual Studio / Rider, or run `dotnet build`.
+2. The built plugin lands at `RegenAssistant/bin/x64/Debug/RegenAssistant.dll`
+   (`Release` builds also produce a distribution-ready
+   `RegenAssistant/bin/x64/Release/RegenAssistant/latest.zip`).
 
-1. Open up `SamplePlugin.sln` in your C# editor of choice (likely [Visual Studio](https://visualstudio.microsoft.com) or [JetBrains Rider](https://www.jetbrains.com/rider/)).
-2. Build the solution. By default, this will build a `Debug` build, but you can switch to `Release` in your IDE.
-3. The resulting plugin can be found at `SamplePlugin/bin/x64/Debug/SamplePlugin.dll` (or `Release` if appropriate.)
+Building on Linux/CI works with
+`dotnet build -c Release -p:EnableWindowsTargeting=true` and `DALAMUD_HOME`
+pointing at an extracted [dalamud-distrib](https://github.com/goatcorp/dalamud-distrib).
 
 ### Activating in-game
 
-1. Launch the game and use `/xlsettings` in chat or `xlsettings` in the Dalamud Console to open up the Dalamud settings.
-    * In here, go to `Experimental`, and add the full path to the `SamplePlugin.dll` to the list of Dev Plugin Locations.
-2. Next, use `/xlplugins` (chat) or `xlplugins` (console) to open up the Plugin Installer.
-    * In here, go to `Dev Tools > Installed Dev Plugins`, and the `SamplePlugin` should be visible. Enable it.
-3. You should now be able to use `/pmycommand` (chat) or `pmycommand` (console)!
+1. `/xlsettings` → `Experimental` → add the full path to
+   `RegenAssistant.dll` to Dev Plugin Locations.
+2. `/xlplugins` → `Dev Tools` → `Installed Dev Plugins` → enable
+   `Regen Assistant`.
+3. `/regenassist` to open the monitor; the overlay is on by default.
 
-Note that you only need to add it to the Dev Plugin Locations once (Step 1); it is preserved afterwards. You can disable, enable, or load your plugin on startup through the Plugin Installer.
+## Notes & limitations
 
-### Reconfiguring for your own uses
+* Healing amounts are **estimates** (see calibration above); crit HoT ticks
+  and healing-received buffs are not modeled.
+* Cross-world party members who are not in the current zone have no readable
+  status list and are skipped.
+* Trust/NPC party members are not yet tracked.
 
-Replace all references to `SamplePlugin` in all the files and filenames with your desired name, then start building the plugin of your dreams. You'll figure it out 😁
+## License
 
-Dalamud will load the JSON file (by default, `SamplePlugin/SamplePlugin.json`) next to your DLL and use it for metadata, including the description for your plugin in the Plugin Installer. Make sure to update this with information relevant to _your_ plugin!
+AGPL-3.0-or-later, following the SamplePlugin template.
 
-All participation in this repository is governed by our [Code of Conduct](https://dalamud.dev/code-of-conduct). If you used AI tooling at any point, review the [AI Usage Policy](https://dalamud.dev/plugin-publishing/ai-policy) and disclose your level of AI use. Entirely AI-generated submissions will be rejected, and undisclosed AI use may result in a ban.
+This plugin was developed with AI assistance (Claude); per the
+[Dalamud AI usage policy](https://dalamud.dev/plugin-publishing/ai-policy),
+disclose this if submitting to the official plugin repository.

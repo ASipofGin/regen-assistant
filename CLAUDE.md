@@ -1,29 +1,46 @@
 # regen-assistant — Development Notes
 
-This repo was created from goatcorp's **SamplePlugin** template for [Dalamud](https://dalamud.dev),
-the FFXIV plugin framework loaded by XIVLauncher. The intended plugin ("regen assistant")
-will be built on top of this template.
+**Regen Assistant**, a [Dalamud](https://dalamud.dev) plugin (FFXIV) that shows, beside each
+player's HP on the party list, the estimated HP that active heal-over-time effects will still
+restore and how long until they complete, plus a draining square gauge, a standalone monitor
+window, and a config UI. Built from goatcorp's SamplePlugin template.
 
 ## Current repo layout
 
 ```
-SamplePlugin.sln
-SamplePlugin/
-  SamplePlugin.csproj      # Uses <Project Sdk="Dalamud.NET.Sdk/15.0.0">
-  SamplePlugin.json        # Plugin manifest template (Name, Author, Punchline, Tags...)
-  Plugin.cs                # IDalamudPlugin entry point; service injection, command, windows
-  Configuration.cs         # IPluginConfiguration persisted via SavePluginConfig
-  Windows/MainWindow.cs    # ImGui window (Dalamud.Interface.Windowing.Window)
-  Windows/ConfigWindow.cs  # Settings window
-Data/goat.png              # Example asset copied to output dir
-.github/workflows/pr-build.yml  # CI: .NET 10, downloads Dalamud dev distrib, dotnet build
+RegenAssistant.sln
+RegenAssistant/
+  RegenAssistant.csproj    # <Project Sdk="Dalamud.NET.Sdk/15.0.0">, AllowUnsafeBlocks
+  RegenAssistant.json      # Plugin manifest (Name, Author, Punchline, Tags...)
+  Plugin.cs                # IDalamudPlugin entry point; services, /regenassist command, windows
+  Configuration.cs         # Overlay toggles/offsets/colors, HpPerPotency, custom statuses
+  RegenStatuses.cs         # HoT table (name → potency/tick); ids resolved from Status sheet by English name at load
+  RegenTracker.cs          # StatusList → estimated remaining heal + seconds remaining per member
+  PartyMembers.cs          # unsafe: AgentHUD party in HUD order → IBattleChara via IObjectTable (solo fallback via IPlayerState)
+  PartyListOverlay.cs      # unsafe: anchors text+square to _PartyList HPGaugeComponent nodes; background drawlist
+  Windows/MonitorWindow.cs # per-member table with breakdown tooltip
+  Windows/ConfigWindow.cs  # settings incl. built-in status enable/disable + custom id/potency entries
+.github/workflows/pr-build.yml  # CI: .NET 10, downloads Dalamud dev distrib, dotnet build (PRs to master)
 ```
 
-Targets `net10.0-windows` (implied by SDK 15 / API level 13). The build resolves Dalamud
-assemblies from `$env:AppData\XIVLauncher\addon\Hooks\dev` (or `DALAMUD_HOME`); CI downloads
-https://goatcorp.github.io/dalamud-distrib/latest.zip into that path. This Linux container
-cannot build the plugin — Windows-only TFM and Dalamud refs — so verification happens via CI
-(PR builder) or on a Windows machine.
+## Building in this (Linux) environment
+
+Works locally despite the `net10.0-windows` TFM:
+
+```
+apt-get install dotnet-sdk-10.0          # after apt-get update
+curl -LO https://raw.githubusercontent.com/goatcorp/dalamud-distrib/main/latest.zip  # goatcorp.github.io is proxy-blocked
+unzip latest.zip -d /root/dalamud-dev
+DALAMUD_HOME=/root/dalamud-dev dotnet build -c Release -p:EnableWindowsTargeting=true
+```
+
+The distrib's `Dalamud.xml` / `FFXIVClientStructs.xml` + a small reflection dumper are the
+fastest way to verify API member names before writing interop code. Verified for v15:
+`IGameGui.GetAddonByName` returns `AtkUnitBasePtr` (use `.IsNull/.IsReady/.IsVisible/.Scale`
+and cast `.Address`); `AgentHUD.Instance()->PartyMembers` (`HudPartyMember.EntityId/.Index`),
+`AddonPartyList.PartyMembers[i].HPGaugeComponent->OwnerNode->AtkResNode.ScreenX/.ScreenY`;
+`IObjectTable.SearchByEntityId`; `IStatus.StatusId/.RemainingTime/.SourceId`.
+Runtime behavior can only be verified in the actual game on Windows.
 
 ## Dalamud plugin fundamentals
 
