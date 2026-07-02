@@ -43,6 +43,17 @@ public class MonitorWindow : Window, IDisposable
             return;
         }
 
+        DrawMemberTable();
+
+        var calibrator = plugin.Calibrator;
+        var usingAuto = plugin.Configuration.AutoCalibrate && calibrator.AutoValue is not null;
+        ImGui.TextDisabled(usingAuto
+            ? $"HP per potency: {calibrator.EffectiveHpPerPotency:0.0} (auto-calibrated, {Math.Max(calibrator.SampleCount, plugin.Configuration.AutoSampleCount)} tick samples)"
+            : $"HP per potency: {calibrator.EffectiveHpPerPotency:0.0} (manual)");
+    }
+
+    private void DrawMemberTable()
+    {
         using var table = ImRaii.Table("##regenMonitor", 4,
             ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.SizingStretchProp);
         if (!table.Success)

@@ -16,6 +16,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IFramework Framework { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     private const string CommandName = "/regenassist";
@@ -24,6 +25,7 @@ public sealed class Plugin : IDalamudPlugin
     public RegenStatuses Statuses { get; init; }
     public RegenTracker Tracker { get; init; }
     public PartyMembers PartyMembers { get; init; }
+    public RegenCalibrator Calibrator { get; init; }
 
     public readonly WindowSystem WindowSystem = new("RegenAssistant");
     private readonly PartyListOverlay overlay;
@@ -34,8 +36,9 @@ public sealed class Plugin : IDalamudPlugin
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Statuses = new RegenStatuses(DataManager, Log);
-        Tracker = new RegenTracker(Statuses, Configuration);
         PartyMembers = new PartyMembers(ObjectTable, PlayerState);
+        Calibrator = new RegenCalibrator(Framework, ClientState, PartyMembers, Statuses, Configuration, Log);
+        Tracker = new RegenTracker(Statuses, Configuration, Calibrator);
         overlay = new PartyListOverlay(GameGui, ClientState, PartyMembers, Tracker, Configuration);
 
         ConfigWindow = new ConfigWindow(this);
@@ -64,6 +67,7 @@ public sealed class Plugin : IDalamudPlugin
 
         WindowSystem.RemoveAllWindows();
 
+        Calibrator.Dispose();
         ConfigWindow.Dispose();
         MonitorWindow.Dispose();
 

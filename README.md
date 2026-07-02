@@ -28,11 +28,21 @@ template (Dalamud.NET.Sdk 15 / API level 15).
 ## How the estimate works
 
 HoTs tick once per actor tick (every 3 s). The plugin computes
-`remaining ticks × potency per tick × HP-per-potency`. Actual healing scales
-with the *caster's* stats, which are not visible for other players, so
-**HP-per-potency is a calibration slider** (default 35): divide an observed
-tick amount by the tick's potency and enter the result. Optionally the
-estimate can be capped at the target's missing HP.
+`remaining ticks × potency per tick × HP-per-potency`.
+
+**HP-per-potency auto-calibrates from real ticks**: when a tracked regen is
+freshly applied to a party member, the plugin watches for that member's first
+HP increase and reads the actual amount restored (all HoTs on a target tick
+together, so the delta is divided by the combined tick potency). Samples at
+full HP or with implausible values are discarded, and a rolling median over
+recent samples absorbs crit ticks and incidental heals. Each accepted tick
+updates the value immediately — it is shown in the settings and monitor
+windows and logged to `/xllog`, and persists between sessions.
+
+Auto-calibration can be disabled in settings, in which case a **manual
+HP-per-potency slider** (default 35) is used; the manual value is also the
+fallback until the first tick has been observed. Optionally the estimate can
+be capped at the target's missing HP.
 
 ## Commands
 
@@ -72,8 +82,10 @@ pointing at an extracted [dalamud-distrib](https://github.com/goatcorp/dalamud-d
 
 ## Notes & limitations
 
-* Healing amounts are **estimates** (see calibration above); crit HoT ticks
-  and healing-received buffs are not modeled.
+* Healing amounts are **estimates**: calibration reads what ticks actually
+  restore, but per-caster differences, crit ticks and healing-received buffs
+  are averaged rather than modeled, and a heal landing in the same instant as
+  a first tick can contaminate a sample (the median filters most of this).
 * Cross-world party members who are not in the current zone have no readable
   status list and are skipped.
 * Trust/NPC party members are not yet tracked.

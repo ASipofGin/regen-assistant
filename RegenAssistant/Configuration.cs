@@ -26,10 +26,15 @@ public class Configuration : IPluginConfiguration
     public Vector4 SquareColor { get; set; } = new(0.3f, 0.9f, 0.4f, 0.9f);
 
     // Estimation
-    // HP restored per point of cure potency. Depends on the caster's stats, so
-    // it is a calibration knob: observed tick amount / tick potency.
+    // Manual HP restored per point of cure potency; used until auto-calibration
+    // has samples, or always when auto-calibration is off.
     public float HpPerPotency { get; set; } = 35f;
     public bool CapAtMissingHp { get; set; } = false;
+
+    // Learn HP-per-potency by observing the first tick of freshly applied regens.
+    public bool AutoCalibrate { get; set; } = true;
+    public float? AutoHpPerPotency { get; set; }
+    public int AutoSampleCount { get; set; }
 
     // Status id -> potency per tick. Overrides built-ins and adds unknown HoTs.
     public Dictionary<uint, float> CustomStatuses { get; set; } = new();

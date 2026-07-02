@@ -39,7 +39,7 @@ public sealed class MemberRegenInfo
 }
 
 /// <summary>Computes remaining regen healing for a character from its status list.</summary>
-public sealed class RegenTracker(RegenStatuses statuses, Configuration config)
+public sealed class RegenTracker(RegenStatuses statuses, Configuration config, RegenCalibrator calibrator)
 {
     /// <summary>
     /// Fills <paramref name="info"/> from the character's active statuses.
@@ -52,6 +52,7 @@ public sealed class RegenTracker(RegenStatuses statuses, Configuration config)
         info.CurrentHp = chara.CurrentHp;
         info.MaxHp = chara.MaxHp;
 
+        var hpPerPotency = calibrator.EffectiveHpPerPotency;
         foreach (var status in chara.StatusList)
         {
             if (status == null || status.StatusId == 0)
@@ -68,7 +69,7 @@ public sealed class RegenTracker(RegenStatuses statuses, Configuration config)
             if (ticks <= 0f)
                 continue;
 
-            var heal = ticks * def.Potency * config.HpPerPotency;
+            var heal = ticks * def.Potency * hpPerPotency;
             info.Actives.Add(new ActiveRegen(def.Id, def.Name, def.Potency, remaining, heal));
             info.RawEstimatedHeal += heal;
             info.SecondsRemaining = MathF.Max(info.SecondsRemaining, remaining);

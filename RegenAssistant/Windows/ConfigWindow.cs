@@ -103,16 +103,44 @@ public class ConfigWindow : Window, IDisposable
 
         if (ImGui.CollapsingHeader("Healing Estimation", ImGuiTreeNodeFlags.DefaultOpen))
         {
+            var autoCalibrate = configuration.AutoCalibrate;
+            if (ImGui.Checkbox("Auto-calibrate from observed regen ticks", ref autoCalibrate))
+            {
+                configuration.AutoCalibrate = autoCalibrate;
+                changed = true;
+            }
+
+            if (plugin.Calibrator.AutoValue is { } auto)
+            {
+                var sampleCount = plugin.Calibrator.SampleCount > 0
+                    ? plugin.Calibrator.SampleCount
+                    : configuration.AutoSampleCount;
+                ImGui.Text($"Learned value: {auto:0.0} HP per potency");
+                ImGui.SameLine();
+                ImGui.TextDisabled(plugin.Calibrator.SampleCount > 0
+                    ? $"({sampleCount} samples this session)"
+                    : $"({sampleCount} samples, restored)");
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Reset"))
+                {
+                    plugin.Calibrator.ResetSamples();
+                    changed = true;
+                }
+            }
+            else
+            {
+                ImGui.TextDisabled("No tick observed yet — apply a regen to a party member who is\n" +
+                                   "missing HP and the first tick will be measured automatically.");
+            }
+
             var hpPerPotency = configuration.HpPerPotency;
-            if (ImGui.DragFloat("HP per potency", ref hpPerPotency, 0.25f, 1f, 200f, "%.1f"))
+            if (ImGui.DragFloat("Manual HP per potency", ref hpPerPotency, 0.25f, 1f, 200f, "%.1f"))
             {
                 configuration.HpPerPotency = hpPerPotency;
                 changed = true;
             }
 
-            ImGui.TextDisabled("Healing scales with the caster's stats, which are not visible for other\n" +
-                               "players. Calibrate: divide an observed tick amount by the tick's potency\n" +
-                               "(e.g. a 8,750 HP Regen tick / 250 potency = 35).");
+            ImGui.TextDisabled("Used until a tick has been observed, or when auto-calibration is off.");
 
             var cap = configuration.CapAtMissingHp;
             if (ImGui.Checkbox("Cap estimate at missing HP", ref cap))

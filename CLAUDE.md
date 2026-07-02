@@ -16,6 +16,7 @@ RegenAssistant/
   Configuration.cs         # Overlay toggles/offsets/colors, HpPerPotency, custom statuses
   RegenStatuses.cs         # HoT table (name → potency/tick); ids resolved from Status sheet by English name at load
   RegenTracker.cs          # StatusList → estimated remaining heal + seconds remaining per member
+  RegenCalibrator.cs       # IFramework.Update: learns HP-per-potency from the first tick of freshly applied regens (rolling median, persisted)
   PartyMembers.cs          # unsafe: AgentHUD party in HUD order → IBattleChara via IObjectTable (solo fallback via IPlayerState)
   PartyListOverlay.cs      # unsafe: anchors text+square to _PartyList HPGaugeComponent nodes; background drawlist
   Windows/MonitorWindow.cs # per-member table with breakdown tooltip
